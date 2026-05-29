@@ -1,3 +1,4 @@
+use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use roxmltree::Document;
 use serde::{Deserialize, Serialize};
 use tokio::time::{sleep, Duration};
@@ -81,10 +82,23 @@ pub async fn fetch_latest_papers() -> Result<Vec<Paper>, Box<dyn std::error::Err
             }
         };
 
+        let cutoff = Utc::now() - ChronoDuration::days(3);
+
         let papers = document
             .descendants()
             .filter(|node| node.has_tag_name("entry"))
-            .map(|entry| {
+            .filter_map(|entry| {
+                let published = entry
+                    .children()
+                    .find(|node| node.has_tag_name("published"))
+                    .and_then(|node| node.text())
+                    .and_then(|text| DateTime::parse_from_rfc3339(text).ok())
+                    .map(|dt| dt.with_timezone(&Utc));
+
+                if published.is_none_or(|published| published < cutoff) {
+                    return None;
+                }
+
                 let title = entry
                     .children()
                     .find(|node| node.has_tag_name("title"))
@@ -101,7 +115,7 @@ pub async fn fetch_latest_papers() -> Result<Vec<Paper>, Box<dyn std::error::Err
                     .unwrap_or_default()
                     .to_string();
 
-                Paper { title, summary }
+                Some(Paper { title, summary })
             })
             .collect();
 

@@ -20,13 +20,19 @@ async fn main() {
     };
 
     println!("Mengambil data paper...");
-    let papers = match providers::fetch_latest_papers().await {
+    let mut papers = match providers::fetch_latest_papers().await {
         Ok(papers) => papers,
         Err(error) => {
             eprintln!("Gagal mengambil data paper dari ArXiv: {error}");
             std::process::exit(1);
         }
     };
+
+    println!("Mengambil data tambahan dari RSS...");
+    match providers::fetch_from_rss("https://hnrss.org/frontpage").await {
+        Ok(mut rss_papers) => papers.append(&mut rss_papers),
+        Err(error) => eprintln!("Gagal mengambil data dari RSS: {error}"),
+    }
 
     if papers.is_empty() {
         println!("Tidak ada paper yang berhasil diambil dari ArXiv. Program dihentikan dengan aman.");
