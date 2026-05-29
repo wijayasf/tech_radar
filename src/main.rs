@@ -29,8 +29,8 @@ async fn main() {
     };
 
     if papers.is_empty() {
-        eprintln!("Tidak ada paper yang ditemukan dari ArXiv.");
-        std::process::exit(1);
+        println!("Tidak ada paper yang berhasil diambil dari ArXiv. Program dihentikan dengan aman.");
+        return;
     }
 
     println!("Menganalisis dengan Gemini...");
